@@ -6,21 +6,24 @@ __pycache__/
 .venv/
 venv/
 
-# 数据集与训练权重（体积过大，需本地生成/重训）
-*.h5
-*.hdf5
-*.pt
-*.pth
-*.ckpt
-
-# 中间数组产物（predictions / maps）
+# ---------------------------------------------------------------------------
+# 未随仓库发布的大体积原始数据与权重（可本地重生成，见 README「数据与产物清单」）
+# ---------------------------------------------------------------------------
+# 原始电磁数据集（4.47 GB / 94.5 MB）：FEKO 468 角全波解
+f16_3d_rcs_dataset_v2.h5
+f16_3d_rcs_dataset.h5
+# 由 h5 派生的训练张量（3.5 GB）：输入 7 通道 / 输出 12 通道
 _p3_X.npy
 _p3_Y.npy
-*_rcs.npz
-_diag_*fullmap.npz
-_diag_dJ_mom.npz
-_diag_staircase_order_raw.npz
-results/po_patches/
+# 其余检查点与中间产物
+3d_fno_train/results/po_patches/
+3d_fno_train/results/bl_*.pt
+3d_fno_train/results/ckpt_imp_*.pt
+3d_fno_train/results/ckpt_ext*.pt
+3d_fno_train/results/ckpt_interp.pt
+3d_fno_train/results/ckpt_full.pt
+3d_fno_train/results/seed_unet_*.pt
+3d_fno_train/results/seed_ffno_interp_*.pt
 
 # 运行日志
 *.log

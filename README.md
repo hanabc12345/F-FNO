@@ -37,7 +37,9 @@ F-FNO-paper/
 │   ├── fig_paper.py             #   Fig.1 workflow / Fig.2 近场切片
 │   ├── fig_errprop_law.py       #   Fig.3 相干增益定律图
 │   ├── incidence_table.npz      #   468 入射角表（θ/φ/e0/k̂/β，FEKO 约定）
-│   └── results/                 #   论文配图 PNG + ONNX 模型 + 全部指标 JSON（小体积）
+│   └── results/                 #   论文配图 PNG + 指标 JSON + ONNX + 检查点 + RCS 方向图 npz
+├── data/
+│   └── f16_3d_rcs_truth_ff.h5   #   全波解真值远场 + RCS 子集（47 MB，供审稿复算）
 ├── feko_dataset/            # FEKO 批量求解与数据集构建/校验脚本
 │   ├── gen_feko_batch.py        #   468 角批处理（MoM，3.0 GHz，~3.9e5 未知量）
 │   ├── verify_dataset_v2.py     #   数据集完整性校验
@@ -69,16 +71,56 @@ F-FNO-paper/
 
 ---
 
-## 数据准备
+## 数据与产物清单
 
-仓库**不含**电磁数据集与训练权重（`f16_3d_rcs_dataset_v2.h5` ≈ 3.96 GB、各 seed 的 `.pt` 检查点）。
-需先自行生成数据集：以 FEKO 对 `f16` 模型在 3.0 GHz 求 468 个入射角的近场与远场解，
-按 `feko_dataset/gen_feko_batch.py` 的批处理流程落盘为 HDF5，字段需求见
-`3d_fno_train/fno_f16_3d.py` 的读取段（`E_scat` / `H_scat` / `eps_field` / `rcs` / `ff_theta` / `ff_phi` / `grid_x` / `grid_y` / `grid_z`）。
+### 随仓库发布（审稿人可直接使用）
+
+| 路径 | 内容 | 体积 |
+|---|---|---|
+| `data/f16_3d_rcs_truth_ff.h5` | **全波解真值远场 + RCS**：`rcs`/`rcs_ortho` (468,37,73)、`E_ff`/`E_ff_ortho` (468,37,73,2) 复数、`angles` (468,2)、`eps_field` (64,48,32)、`ff_theta`/`ff_phi`、`grid_x/y/z`。属性内注明来源与口径。 | 47 MB |
+| `3d_fno_train/results/exp_seeds_ffno_full_rcs.npz` | F-FNO 三 seed 的远场方向图 `rcs_true` / `floor` / `pred_s0..s2`，各 (468,37,73) | 21 MB |
+| `3d_fno_train/results/exp_seeds_ffno_interp_rcs.npz` | 同上，234 个未见入射角 | 10 MB |
+| `3d_fno_train/results/exp_seeds_unet_full_rcs.npz` | U-Net 基线三 seed（468 角） | 21 MB |
+| `3d_fno_train/results/exp_nffft_anglesets_rcs.npz` | floor / pred / truth 在 full468、interp234、legacy40 三套角度上的方向图（Eref/Esur/Eend 分解的原始数据） | 22 MB |
+| `3d_fno_train/results/_diag_po_fullmap.npz`、`_diag_fno_fullmap.npz` | PO 链 / FNO 链的 468 角 × 2701 方向误差图 | 25 MB |
+| `3d_fno_train/results/ckpt_full_p3.pt` | F-FNO 生产配置（width 128，3.08 M 参数，468 角全量训练）权重 | 23 MB |
+| `3d_fno_train/results/seed_ffno_full_s{0,1,2}.pt` | F-FNO 三个独立 seed 的权重（Table I 的 ± 由此而来） | 70 MB |
+| `3d_fno_train/results/fno_f16_3d_p3.onnx`、`resid_mlp.onnx` | 可推理模型（ONNX） | 24 MB |
+| `3d_fno_train/results/*.png` | **全部论文配图与实验图**（29 张，含 Fig.1–3） | 3.6 MB |
+| `3d_fno_train/results/*.json` | 全部指标 JSON（论文每个数字的原始记录） | 0.6 MB |
+
+> `exp_seeds_*_rcs.npz` 配合 `exp_seeds_*.json` 即可**逐位复算 Table I**；
+> `exp_nffft_anglesets_rcs.npz` 配合 `_diag_errprop_exact.json` 即可复算 **Fig. 3**。
+
+### 未随仓库发布（体积超 GitHub 单文件上限，可本地重生成）
+
+| 文件 | 体积 | 说明 |
+|---|---|---|
+| `f16_3d_rcs_dataset_v2.h5` | 4.47 GB | 全波解**近场体素场**：`E_scat`/`H_scat`/`E_scat_ortho`/`H_scat_ortho` 各 (468,64,48,32,3) complex64 = 1.10 GB × 4。**仅 Fig.2 的近场切片与重训需要**。 |
+| `f16_3d_rcs_dataset.h5` | 94.5 MB | 早期 39 角版本（仅主极化、无 H 场），已被 v2 取代。 |
+| `_p3_X.npy` / `_p3_Y.npy` | 1.29 / 2.21 GB | 由 v2.h5 派生的训练张量：输入 (468,7,64,48,32)、输出 (468,12,64,48,32)。**可一行重建**，非原始数据。 |
+| `seed_unet_full_s{0,1,2}.pt` 等 | 23–86 MB/个 | U-Net 基线及其余消融检查点。 |
+
+### 重生成原始数据集
+
+以 FEKO 对 `f16` 模型在 3.0 GHz 求 468 个入射角的近场与远场解，按 `feko_dataset/gen_feko_batch.py`
+的批处理流程落盘为 HDF5（MoM，约 3.9×10⁵ 未知量，单角约 8.4 min，468 角约 65 h）。
+字段定义见 `3d_fno_train/fno_f16_3d.py` 的读取段。
+
+由 v2.h5 重建训练张量（无缓存时自动组装，首次约 1–2 分钟）：
+
+```python
+# 组装逻辑在 fno_f16_3d_p3.load_p3()；带磁盘缓存的外层是 exp_baselines.load_p3_cached()
+import exp_baselines as B
+B.load_p3_cached(use_cache=True)   # 直接把 _p3_X/_p3_Y/_p3_angles/_p3_eps 写回 results/
+```
+
+等价做法：任一次运行 `python exp_baselines.py` 都会自动生成这四个缓存文件。
 
 > **注意**：脚本中的数据集路径为绝对路径常量
 > `H5 = r"...\3d_feko_data\f16_3d_rcs_dataset_v2.h5"`（见 `fno_f16_3d.py`、`f16_rcs_demo*.py`、
 > `_diag_angle.py`、`export_ue_onnx_assets.py`），运行前请改为本机实际路径。
+
 
 ---
 
