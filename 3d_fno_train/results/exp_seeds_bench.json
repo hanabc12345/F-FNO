@@ -1,0 +1,18 @@
+[
+  {
+    "arch": "ffno",
+    "width": 128,
+    "params": 3083276,
+    "inference_ms_per_sample": 25.2849022547404,
+    "flops": 13782482944,
+    "flops_note": "FlopCounterMode; FFT ops may be uncounted"
+  },
+  {
+    "arch": "unet",
+    "width": 64,
+    "params": 22410508,
+    "inference_ms_per_sample": 10.3745698928833,
+    "flops": 169781231616,
+    "flops_note": "FlopCounterMode; FFT ops may be uncounted"
+  }
+]

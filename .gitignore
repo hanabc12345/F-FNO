@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# 数据集与训练权重（体积过大，需本地生成/重训）
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+
+# 中间数组产物（predictions / maps）
+_p3_X.npy
+_p3_Y.npy
+*_rcs.npz
+_diag_*fullmap.npz
+_diag_dJ_mom.npz
+_diag_staircase_order_raw.npz
+results/po_patches/
+
+# 运行日志
+*.log

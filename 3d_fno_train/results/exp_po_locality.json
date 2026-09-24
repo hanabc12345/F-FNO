@@ -1,0 +1,57 @@
+{
+  "n_facet": 1346,
+  "n_angle": 468,
+  "n_sample": 629928,
+  "lit_frac": 0.35162748758588286,
+  "po_facet_rel_median_all": 1.0,
+  "po_facet_rel_median_lit": 0.9630513191223145,
+  "r2": {
+    "局部特征": {
+      "random": 0.05505329370498657,
+      "spatial": 0.05006474256515503,
+      "mirror": 0.05580902099609375
+    },
+    "局部+绝对坐标": {
+      "random": 0.05845224857330322,
+      "spatial": 0.03768545389175415,
+      "mirror": 0.055728256702423096
+    }
+  },
+  "r2_lit": {
+    "局部特征": {
+      "random": 0.5632243454456329,
+      "spatial": 0.5547447800636292,
+      "mirror": 0.5643638372421265
+    },
+    "局部+绝对坐标": {
+      "random": 0.5636051297187805,
+      "spatial": 0.5437366664409637,
+      "mirror": 0.5513201355934143
+    }
+  },
+  "r2_mlp_spatial_lit": 0.5915615856647491,
+  "farfield": {
+    "truth_floor": {
+      "rcs_dB_err_median": 3.4829761103954793,
+      "rcs_dB_err_p90": 8.90491443597724,
+      "rcs_corr_median": 0.6250366637716678
+    },
+    "po_staircase": {
+      "rcs_dB_err_median": 3.749675334178069,
+      "rcs_dB_err_p90": 10.109164371986955,
+      "rcs_corr_median": 0.6010366094559485
+    },
+    "po_smooth": {
+      "rcs_dB_err_median": 4.3038377026290675,
+      "rcs_dB_err_p90": 10.810237101354373,
+      "rcs_corr_median": 0.5786374370593057
+    }
+  },
+  "verdict": {
+    "rule": "仅受照面：R2_spatial >= 0.5*R2_random 且 R2_spatial > 0.3",
+    "r2_random": 0.5632243454456329,
+    "r2_spatial": 0.5547447800636292,
+    "r2_mirror": 0.5643638372421265,
+    "hypothesis_holds": true
+  }
+}

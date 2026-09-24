@@ -1,0 +1,19 @@
+{
+  "name": "full",
+  "n_train": 468,
+  "n_test": 0,
+  "modes": [20, 16, 10],
+  "width": 128,
+  "epochs": 300,
+  "phys": true,
+  "phys_lambda": [0.1, 0.1],
+  "metrics": {
+    "train": {
+      "rel_global": 0.4986,
+      "rel_median": 0.4917,
+      "corr_mag": 0.934,
+      "rel_max": 0.641
+    }
+  },
+  "note": "P2 物理损失版（helm=0.314 稳定于 FEKO 水平，对查表误差无增益）"
+}

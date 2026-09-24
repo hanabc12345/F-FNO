@@ -1,0 +1,7 @@
+{
+  "mode": "pred",
+  "n_angles": 468,
+  "rcs_dB_err_median": 4.045122939208774,
+  "rcs_dB_err_p90": 10.003172046825785,
+  "rcs_corr_median": 0.6224140664989348
+}

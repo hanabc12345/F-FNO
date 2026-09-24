@@ -1,0 +1,151 @@
+FNO-RCS 推理服务端 部署包 使用说明
+====================================
+版本：部署包 v2.0（多站点 + 压制干扰，ONNX + NFFFT 实时 RCS 推理 TCP 服务端）
+
+一、包内容
+------------------------------------
+deploy_rcs_server/
+├── ue_rcs_service.py      服务端主程序（1~4 雷达站 + 每站独立压制干扰，自动 CUDA/CPU）
+├── mock_ue_client.py      模拟 UE 客户端（本地联调测试用，可回放 90s 对抗场景）
+├── nffft_lite.py          近远场变换核心库（纯 numpy，勿删除）
+├── F16_demo_trajectory.csv  90s 对抗演示场景航迹（mock 回放用，UE 可参考）
+├── 接口文档-飞机数据.md     与 UE 的完整通信协议（多站+干扰版），UE 对接必读
+├── models/
+│   └── fno_f16_3d_p3.onnx   ONNX 推理模型（23.5 MB）
+├── data/
+│   ├── geometry.h5         目标体素场 eps + 网格坐标（388 KB，自 3.9GB 数据集抽取）
+│   ├── stats.npz           模型标准化参数（1.1 KB，自训练 ckpt 抽取）
+│   └── calib_affine.json   Δ-分档标定表（2.5 KB，默认启用；缺失时自动退化为未标定输出）
+└── 使用说明.txt
+
+注意：不包含原始 3.9GB 训练数据集，运行时仅依赖以上小文件。
+
+二、目标机器环境要求
+------------------------------------
+1. 操作系统：Windows / Linux 均可
+2. Python：3.9 及以上（推荐 3.10/3.11 64 位）
+3. 依赖库（用 pip 安装）：
+
+       pip install numpy h5py onnxruntime
+
+   如需 GPU 加速（推荐，多站批量推理约 150~900ms/批；CPU 约 8 秒/帧，基本不可用）：
+       pip install onnxruntime-gpu
+       并安装 NVIDIA CUDA 12.x + cuDNN（onnxruntime-gpu 对应版本），
+       需有 NVIDIA 显卡（显存 ≥ 2GB 即可，模型输入为 64×48×32×7）。
+
+   依赖就绪后用以下命令验证：
+       python -c "import numpy, h5py, onnxruntime; print('OK')"
+   若打印 OK 即可运行。
+
+三、启动服务端
+------------------------------------
+进入 deploy_rcs_server 目录，运行：
+
+       python ue_rcs_service.py                  # 单卡（默认 GPU 0）
+
+启动成功标志：
+       引擎就绪: provider=CUDAExecutionProvider  [GPU0]（或 CPUExecutionProvider [CPU]）
+       [方向图] 动态合成已启用：每 5 帧发送一次，θ 切面随当前 LOS 有效入射角变化
+       [提示] UE 客户端请连接: <本机IP>:9001
+       [监听] Python 服务端 0.0.0.0:9001，等待 UE 客户端连接...
+
+UE 客户端连接地址：<本机IP>:9001
+   （本机 IP 用 ipconfig 查看；默认端口 9001，可用 --port 修改）
+
+其他用法：
+       python ue_rcs_service.py --port 9002         # 换端口
+       python ue_rcs_service.py --pattern-every 3   # 方向图每 3 帧发一次（默认 5）
+       python ue_rcs_service.py --pattern-every 0   # 不发送方向图
+       python ue_rcs_service.py --selftest          # 自检（验证模型/管线正常，不需 UE）
+       python ue_rcs_service.py --no-calib          # 关闭 Δ-分档标定（默认开启）
+
+Δ-分档标定（默认开启，无需任何操作）：
+   模型由解析 PO 链路训练，PO 对弱散射方向填充不足，误差以动态范围压缩为主。
+   服务端按 data/calib_affine.json 对输出做方向依赖校正：单站口径中位误差
+   5.98 → 3.24 dB，方向图 P90 9.40 → 7.07 dB，四态判决不一致 15.5% → 7.9%。
+   该表对单站 / 方向图 / 双站三条输出共用，故三者口径一致。
+
+双卡提速（本机有 2 张 NVIDIA GPU 时，吞吐近似翻倍，推荐 UE 联调时使用）：
+       python ue_rcs_service.py --devices 0,1
+   说明：
+     - --devices 后跟 CUDA GPU 序号，逗号分隔；每个序号独占一张卡跑一个推理 worker。
+     - 先运行 nvidia-smi 查看本机显卡序号，确认哪些卡空闲可用（桌面占用等）。
+     - 单卡机器不用加此参数（默认只走 GPU 0）。
+
+显存不足时（GPU 被桌面/浏览器等占用、日志出现 OOM）可调小每批样本：
+       python ue_rcs_service.py --max-samples 4     # 每批最多 4 样本（默认 8），峰值显存约减半
+
+UE 发送频率建议：服务端双站场景实测可持续处理约 8 帧/秒（125ms/帧），
+  请控制 UE 请求频率 ≤8 fps；推荐按 UE 异步方案固定 200ms（5 fps）发送，留足余量。
+
+停止：Ctrl + C
+
+四、本地联调（无 UE 环境，推荐先跑通）
+------------------------------------
+终端1：python ue_rcs_service.py
+终端2：python mock_ue_client.py --host 127.0.0.1 --port 9001
+
+终端2 默认回放包内 90s 对抗场景（F16_demo_trajectory.csv，两站 R1/R2 + 41s 干扰开机），
+实时打印每站表观 RCS / 干扰状态 / σ12σ21；终端1 同步打印处理日志。
+
+mock 其他用法：
+       python mock_ue_client.py --no-csv        # 不用场景，内联双站快速冒烟
+       python mock_ue_client.py --start 39 --frames 16   # 从 39s 回放 16 帧（干扰压制段）
+       python mock_ue_client.py --start 78 --frames 14   # 烧穿段
+
+五、与 UE 的通信协议（小端二进制，可变长度，1~4 站点）
+------------------------------------
+详细字段/偏移/长度速查见《接口文档-飞机数据.md》，此处为要点：
+
+【请求】33 + 17×N 字节（N=站点数 1~4）
+   头 33B（<q3f3fB）：int64 timestamp(ms) + 飞机 pos[3] + 飞机姿态[pitch,yaw,roll]° + uint8 N
+   每站 17B（<3fBf）：雷达 pos[3] + uint8 干扰开关(0/1) + float32 干扰标定dBsm@4km
+   （干扰等效 σ_jam(R)=σ_jam(4km)×(R/4km)²，单程干扰）
+
+【响应·单站包】16 + 24N + 4N(N-1) 字节（每帧一个）
+   头 16B：int32 Type(0=仅单站包 / 1=后附方向图) + int64 timestamp(ms) + int32 N
+   每站 16B：los_theta, los_phi, eff_theta, eff_phi（float32，°）
+   每站 4B：rcs_apparent_db（表观 RCS = 物理单站 + σ_jam，dBsm）
+   每站 4B：jam_state（0=未探测 1=压制 2=烧穿/正常跟踪）
+   N(N-1)×4B：σ_ij_db（站 i 发、站 j 收的双站 RCS，行主序；N<2 为空）
+   长度速查：N=1→40B，N=2→72B，N=3→112B，N=4→160B
+
+【响应·方向图包】24 + 16×n 字节（Type=1 时紧跟单站包之后）
+   头 24B：int32 Type(=2) + int64 timestamp + double theta_deg（动态，=站点1当前有效入射角）
+           + int32 n_sample(37)
+   数据：PhiDegArr[n]/RcsDbArr[n]（double 数组，8 字节/元素）
+
+UE 端接收要点：
+   - 用发送数据的同一个 socket 读取；
+   - 必须循环累加缓冲解析（TCP 会分包/粘包）：先读 16B 头得 N 与 Type，
+     再读满 24N+4N(N-1) 字节；若 Type=1 再读方向图包（24 + 16×37 字节）；
+   - 方向图数组是 double（8 字节），不是 float32；
+   - 异常帧：所有站点 rcs_apparent_db = -100.0、jam_state=0，UE 用 ≤-99 过滤；
+   - 接收超时建议 ≥1 秒（批量推理最多约 0.9 秒才返回）。
+
+六、性能与批量推理
+------------------------------------
+- 单站单帧推理：GPU ~150ms；CPU ~8s（不可用，务必装 GPU 版）
+- 连续批量推理：服务端自动把连发帧合并为一次 ONNX 推理（最多 8 帧），
+  突发时端到端约 8~10 帧/秒。UE 无需任何改动。
+- 方向图：每帧实时动态合成（复用当前帧近场，NFFFT 一次多方向，约 10ms），
+  零额外推理；θ 切面随站点1 的 LOS 有效入射角变化，不再固定 90°。
+- 建议 UE 发送频率：5 帧/秒（200ms/帧），与 90s 演示场景节奏一致且不堆积；
+  上限约 8~10 帧/秒。
+- 有效入射角 θ 训练范围 30°-150°，任一站点越界则整帧无效（表观 RCS=-100）。
+
+七、常见问题
+------------------------------------
+1. UE 连接不上？
+   确认服务端已启动且打印了监听提示；确认同一局域网；确认防火墙放行 9001
+   端口入站；UE 连接地址用服务端打印的本机 IP，不是 127.0.0.1。
+2. 没有 GPU / 显示 CPUExecutionProvider？
+   推理会非常慢（约 8 秒/帧），请安装 onnxruntime-gpu 与 CUDA。
+3. 收到表观 RCS = -100 / 整帧无效？
+   说明该帧有站点角度越界（θ 超出 30°-150°）或坐标异常，属正常过滤；
+   检查飞机-雷达相对位置是否在合理范围。
+4. 干扰没生效（状态一直是 0/2）？
+   确认请求中该站 jammer_on=1 且 jam_db_at4km 为合理负值（如 -11.5）；
+   状态 1(压制) 需要 距离<11.9km 且 σ_jam ≥ 1.4×σ_real。
+5. 日志里 ScatterND 警告？
+   onnxruntime 的常规提示，不影响结果，可忽略。

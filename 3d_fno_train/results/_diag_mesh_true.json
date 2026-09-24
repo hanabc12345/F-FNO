@@ -1,0 +1,36 @@
+{
+  "n_angle": 12,
+  "h_m": 0.03125,
+  "lambda_m": 0.0999307400493026,
+  "samples_per_lambda": 3.197783681577683,
+  "wall_s": 443.3782858848572,
+  "stage1_incident_interp_artifact": {
+    "amp_ratio_median": 0.7122995876555405,
+    "amp_ratio_chord_p10": 0.6155716025212492,
+    "amp_ratio_chord_p90": 0.8474562624818223,
+    "phase_err_median_deg": 2.958215805740594,
+    "rcs_delta_med_abs_dB": 2.689211530284869,
+    "rcs_delta_p90_abs_dB": 3.5382412894060824,
+    "rcs_delta_bias_dB": -2.6865283423671977,
+    "rcs_delta_mono_bias_dB": -2.6568375837218166,
+    "theory_amp_loss_midpoint_dB": -5.114072287137239
+  },
+  "stage2_variants": {
+    "T0_interp_all": {
+      "rcs_dB_err_median": 5.892828444830875,
+      "rcs_dB_err_p90": 12.366738311703328,
+      "rcs_corr_median": 0.5783773477737413
+    },
+    "T1_analytic_inc": {
+      "rcs_dB_err_median": 5.100963101556131,
+      "rcs_dB_err_p90": 10.77314065604652,
+      "rcs_corr_median": 0.6635113322781401
+    },
+    "T2_T1_rescale_scat": {
+      "rcs_dB_err_median": 5.476789904373353,
+      "rcs_dB_err_p90": 113.92762261979125,
+      "rcs_corr_median": 0.5262837472610663
+    }
+  },
+  "T2_rho_used_median": 0.7122995876555405
+}

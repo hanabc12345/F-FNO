@@ -1,0 +1,11 @@
+{
+  "mode": "truth",
+  "n_angles": 10,
+  "rcs_dB_err_median": 3.6322382803138282,
+  "rcs_dB_err_p90": 8.93714163863643,
+  "rcs_corr_median": 0.6358314661494535,
+  "E_ff_ratio_med": {
+    "ch0/theta": 0.903112660560311,
+    "ch1/phi": 0.7910580816284947
+  }
+}

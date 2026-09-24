@@ -1,0 +1,39 @@
+{
+  "ckpt": "ckpt_imp_interp_plain_s0.pt",
+  "tag": "interp_plain_s0",
+  "n_angles": 4,
+  "angles": [
+    0,
+    155,
+    311,
+    467
+  ],
+  "box_n_faces": 13312,
+  "nearfield": {
+    "box_rel_E": 0.9061703383922577,
+    "box_rel_H": 0.8943139910697937,
+    "all_rel_E": 0.8174591660499573,
+    "all_rel_H": 0.8138656914234161,
+    "surf_rel_H": 1.1452460790124845
+  },
+  "truth_surface": {
+    "rcs_dB_err_median": 3.5426663149991997,
+    "rcs_dB_err_p90": 9.883983046393197,
+    "rcs_corr_median": 0.623138811964723
+  },
+  "truth_box": {
+    "rcs_dB_err_median": 0.15527253904654792,
+    "rcs_dB_err_p90": 0.5166534734042036,
+    "rcs_corr_median": 0.9986022234811007
+  },
+  "pred_surface": {
+    "rcs_dB_err_median": 4.207221670514209,
+    "rcs_dB_err_p90": 9.791053958047886,
+    "rcs_corr_median": 0.5379086270168717
+  },
+  "pred_box": {
+    "rcs_dB_err_median": 11.480833983565022,
+    "rcs_dB_err_p90": 21.820578309450116,
+    "rcs_corr_median": 0.26631406908454947
+  }
+}

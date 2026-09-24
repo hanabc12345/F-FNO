@@ -1,0 +1,21 @@
+{
+  "name": "full",
+  "n_train": 468,
+  "n_test": 0,
+  "modes": [
+    20,
+    16,
+    10
+  ],
+  "width": 192,
+  "epochs": 300,
+  "phys": false,
+  "metrics": {
+    "train": {
+      "rel_global": 0.4187334306699822,
+      "rel_median": 0.4184698527300826,
+      "corr_mag": 0.9579135810382646,
+      "rel_max": 0.4945199940511619
+    }
+  }
+}
